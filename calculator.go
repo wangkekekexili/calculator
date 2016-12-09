@@ -9,11 +9,20 @@ var (
 )
 
 const (
-	tokenTypeDoNotUse tokenType = iota
+	_ tokenType = iota
 	tokenTypeNumber
 	tokenTypeOperator
 	tokenTypeEOF
 	tokenTypeError
+)
+
+var (
+	tokenTypeValueToString = map[tokenType]string{
+		tokenTypeNumber:   "number",
+		tokenTypeOperator: "operator",
+		tokenTypeEOF:      "EOF",
+		tokenTypeError:    "error",
+	}
 )
 
 type token struct {
