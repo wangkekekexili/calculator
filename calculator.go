@@ -1,6 +1,9 @@
 package calculator
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 type tokenType int
 
@@ -26,7 +29,7 @@ var (
 )
 
 type token struct {
-	value     float64
+	value     int
 	operator  byte
 	tokenType tokenType
 }
@@ -52,13 +55,25 @@ func (c *calculator) getNextToken() *token {
 		return &token{tokenType: tokenTypeEOF}
 	}
 	ch := c.input[c.currentPosition]
-	c.currentPosition++
 	switch {
 	case ch >= '0' && ch <= '9':
-		return &token{value: float64(ch - '0'), tokenType: tokenTypeNumber}
+		valueEndIndex := c.currentPosition + 1
+		for valueEndIndex < len(c.input) {
+			ch = c.input[valueEndIndex]
+			if ch >= '0' && ch <= '9' {
+				valueEndIndex++
+				continue
+			}
+			break
+		}
+		value, _ := strconv.ParseInt(c.input[c.currentPosition:valueEndIndex], 10, 32)
+		c.currentPosition = valueEndIndex
+		return &token{value: int(value), tokenType: tokenTypeNumber}
 	case ch == '+':
+		c.currentPosition++
 		return &token{operator: '+', tokenType: tokenTypeOperator}
 	case ch == '-':
+		c.currentPosition++
 		return &token{operator: '-', tokenType: tokenTypeOperator}
 	default:
 		return &token{tokenType: tokenTypeError}
@@ -73,7 +88,7 @@ func (c *calculator) getNextTokenWithExpectedType(expectedTokenType tokenType) (
 	return token, nil
 }
 
-func (c *calculator) calculate() (float64, error) {
+func (c *calculator) calculate() (int, error) {
 	first, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
 	if err != nil {
 		return 0, err
@@ -95,7 +110,7 @@ func (c *calculator) calculate() (float64, error) {
 	return 0, nil
 }
 
-func Do(input string) float64 {
+func Do(input string) int {
 	result, err := newCalculator(input).calculate()
 	if err != nil {
 		panic(err)
