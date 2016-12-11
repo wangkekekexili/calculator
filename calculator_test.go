@@ -12,6 +12,9 @@ func TestCalculator(t *testing.T) {
 	}, {
 		input:  "200-100",
 		output: 100,
+	}, {
+		input:  " 10 +  11 ",
+		output: 21,
 	}}
 	for _, test := range tests {
 		output := Do(test.input)
