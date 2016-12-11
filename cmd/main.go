@@ -14,8 +14,14 @@ func main() {
 		fmt.Print("> ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
+			fmt.Println(err)
 			continue
 		}
-		fmt.Println(calculator.Do(input))
+		result, err := calculator.Do(input)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println(result)
 	}
 }

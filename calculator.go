@@ -1,36 +1,65 @@
 package calculator
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 )
 
 type tokenType int
 
-var (
-	errUnexpectedTokenType = errors.New("unexpected token type")
-)
-
 const (
 	_ tokenType = iota
 	tokenTypeNumber
-	tokenTypeOperator
+	tokenTypePlus
+	tokenTypeMinus
 	tokenTypeEOF
 	tokenTypeError
 )
 
 var (
 	tokenTypeValueToString = map[tokenType]string{
-		tokenTypeNumber:   "number",
-		tokenTypeOperator: "operator",
-		tokenTypeEOF:      "EOF",
-		tokenTypeError:    "error",
+		tokenTypeNumber: "number",
+		tokenTypePlus:   "plus",
+		tokenTypeMinus:  "minus",
+		tokenTypeEOF:    "EOF",
+		tokenTypeError:  "error",
+	}
+
+	numberTypeSet = map[tokenType]bool{
+		tokenTypeNumber: true,
+	}
+	operatorTypeSet = map[tokenType]bool{
+		tokenTypePlus:  true,
+		tokenTypeMinus: true,
 	}
 )
 
+type unexpectedTokenError struct {
+	index              int
+	expectedTokenTypes map[tokenType]bool
+	token              *token
+}
+
+func newUnexpectedTokenError(index int, token *token, expectedTokenTypes map[tokenType]bool) *unexpectedTokenError {
+	return &unexpectedTokenError{
+		index:              index,
+		expectedTokenTypes: expectedTokenTypes,
+		token:              token,
+	}
+}
+
+func (err *unexpectedTokenError) Error() string {
+	var expectedTypeStrs []string
+	for t := range err.expectedTokenTypes {
+		expectedTypeStrs = append(expectedTypeStrs, tokenTypeValueToString[t])
+	}
+	targetTypeStr := tokenTypeValueToString[err.token.tokenType]
+	return fmt.Sprintf("Index: %d. Expected to get tokens of type %v. Got token %v.", err.index, strings.Join(expectedTypeStrs, " or "), targetTypeStr)
+}
+
 type token struct {
 	value     int
-	operator  byte
 	tokenType tokenType
 }
 
@@ -71,49 +100,46 @@ func (c *calculator) getNextToken() *token {
 		return &token{value: int(value), tokenType: tokenTypeNumber}
 	case ch == '+':
 		c.currentPosition++
-		return &token{operator: '+', tokenType: tokenTypeOperator}
+		return &token{tokenType: tokenTypePlus}
 	case ch == '-':
 		c.currentPosition++
-		return &token{operator: '-', tokenType: tokenTypeOperator}
+		return &token{tokenType: tokenTypeMinus}
 	default:
 		return &token{tokenType: tokenTypeError}
 	}
 }
 
-func (c *calculator) getNextTokenWithExpectedType(expectedTokenType tokenType) (*token, error) {
+func (c *calculator) getNextTokenWithExpectedType(expectedTokenTypeSet map[tokenType]bool) (*token, error) {
 	token := c.getNextToken()
-	if token.tokenType != expectedTokenType {
-		return nil, errUnexpectedTokenType
+	if _, ok := expectedTokenTypeSet[token.tokenType]; !ok {
+		return nil, newUnexpectedTokenError(c.currentPosition, token, expectedTokenTypeSet)
 	}
 	return token, nil
 }
 
 func (c *calculator) calculate() (int, error) {
-	first, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
+	first, err := c.getNextTokenWithExpectedType(numberTypeSet)
 	if err != nil {
 		return 0, err
 	}
-	operator, err := c.getNextTokenWithExpectedType(tokenTypeOperator)
+	operator, err := c.getNextTokenWithExpectedType(operatorTypeSet)
 	if err != nil {
 		return 0, err
 	}
-	second, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
+	second, err := c.getNextTokenWithExpectedType(numberTypeSet)
 	if err != nil {
 		return 0, err
 	}
-	switch operator.operator {
-	case '+':
+	switch operator.tokenType {
+	case tokenTypePlus:
 		return first.value + second.value, nil
-	case '-':
+	case tokenTypeMinus:
 		return first.value - second.value, nil
 	}
 	return 0, nil
 }
 
-func Do(input string) int {
-	result, err := newCalculator(input).calculate()
-	if err != nil {
-		panic(err)
-	}
-	return result
+// Do performs arithmetic calculation based on the input string.
+func Do(input string) (int, error) {
+	return newCalculator(input).calculate()
 }
