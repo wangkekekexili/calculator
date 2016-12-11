@@ -72,10 +72,35 @@ func newCalculator(input string) *calculator {
 	return &calculator{input: input}
 }
 
+func (c *calculator) advance() {
+	if c.currentPosition < len(c.input) {
+		c.currentPosition++
+	}
+}
+
 func (c *calculator) skipWhitespace() {
 	for c.currentPosition < len(c.input) && c.input[c.currentPosition] == ' ' {
 		c.currentPosition++
 	}
+}
+
+// getNextNumber gets the next number token. The caller should guarantee that the next token is a number.
+func (c *calculator) getNextNumber() int {
+	valueEndIndex := c.currentPosition + 1
+	for valueEndIndex < len(c.input) {
+		ch := c.input[valueEndIndex]
+		if ch >= '0' && ch <= '9' {
+			valueEndIndex++
+			continue
+		}
+		break
+	}
+	value, err := strconv.ParseInt(c.input[c.currentPosition:valueEndIndex], 10, 32)
+	if err != nil {
+		panic(err)
+	}
+	c.currentPosition = valueEndIndex
+	return int(value)
 }
 
 func (c *calculator) getNextToken() *token {
@@ -86,23 +111,12 @@ func (c *calculator) getNextToken() *token {
 	ch := c.input[c.currentPosition]
 	switch {
 	case ch >= '0' && ch <= '9':
-		valueEndIndex := c.currentPosition + 1
-		for valueEndIndex < len(c.input) {
-			ch = c.input[valueEndIndex]
-			if ch >= '0' && ch <= '9' {
-				valueEndIndex++
-				continue
-			}
-			break
-		}
-		value, _ := strconv.ParseInt(c.input[c.currentPosition:valueEndIndex], 10, 32)
-		c.currentPosition = valueEndIndex
-		return &token{value: int(value), tokenType: tokenTypeNumber}
+		return &token{value: c.getNextNumber(), tokenType: tokenTypeNumber}
 	case ch == '+':
-		c.currentPosition++
+		c.advance()
 		return &token{tokenType: tokenTypePlus}
 	case ch == '-':
-		c.currentPosition++
+		c.advance()
 		return &token{tokenType: tokenTypeMinus}
 	default:
 		return &token{tokenType: tokenTypeError}
