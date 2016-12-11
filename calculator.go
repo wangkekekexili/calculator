@@ -1,6 +1,7 @@
 package calculator
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,25 +14,31 @@ const (
 	tokenTypeNumber
 	tokenTypePlus
 	tokenTypeMinus
+	tokenTypeMultiple
+	tokenTypeDevide
 	tokenTypeEOF
 	tokenTypeError
 )
 
 var (
 	tokenTypeValueToString = map[tokenType]string{
-		tokenTypeNumber: "number",
-		tokenTypePlus:   "plus",
-		tokenTypeMinus:  "minus",
-		tokenTypeEOF:    "EOF",
-		tokenTypeError:  "error",
+		tokenTypeNumber:   "number",
+		tokenTypePlus:     "plus",
+		tokenTypeMinus:    "minus",
+		tokenTypeMultiple: "multiple",
+		tokenTypeDevide:   "devide",
+		tokenTypeEOF:      "EOF",
+		tokenTypeError:    "error",
 	}
 
 	numberTypeSet = map[tokenType]bool{
 		tokenTypeNumber: true,
 	}
 	operatorTypeSet = map[tokenType]bool{
-		tokenTypePlus:  true,
-		tokenTypeMinus: true,
+		tokenTypePlus:     true,
+		tokenTypeMinus:    true,
+		tokenTypeMultiple: true,
+		tokenTypeDevide:   true,
 	}
 )
 
@@ -59,7 +66,7 @@ func (err *unexpectedTokenError) Error() string {
 }
 
 type token struct {
-	value     int
+	value     float64
 	tokenType tokenType
 }
 
@@ -85,7 +92,7 @@ func (c *calculator) skipWhitespace() {
 }
 
 // getNextNumber gets the next number token. The caller should guarantee that the next token is a number.
-func (c *calculator) getNextNumber() int {
+func (c *calculator) getNextNumber() float64 {
 	valueEndIndex := c.currentPosition + 1
 	for valueEndIndex < len(c.input) {
 		ch := c.input[valueEndIndex]
@@ -100,7 +107,7 @@ func (c *calculator) getNextNumber() int {
 		panic(err)
 	}
 	c.currentPosition = valueEndIndex
-	return int(value)
+	return float64(value)
 }
 
 func (c *calculator) getNextToken() *token {
@@ -118,6 +125,12 @@ func (c *calculator) getNextToken() *token {
 	case ch == '-':
 		c.advance()
 		return &token{tokenType: tokenTypeMinus}
+	case ch == '*':
+		c.advance()
+		return &token{tokenType: tokenTypeMultiple}
+	case ch == '/':
+		c.advance()
+		return &token{tokenType: tokenTypeDevide}
 	default:
 		return &token{tokenType: tokenTypeError}
 	}
@@ -131,7 +144,7 @@ func (c *calculator) getNextTokenWithExpectedType(expectedTokenTypeSet map[token
 	return token, nil
 }
 
-func (c *calculator) calculate() (int, error) {
+func (c *calculator) calculate() (float64, error) {
 	first, err := c.getNextTokenWithExpectedType(numberTypeSet)
 	if err != nil {
 		return 0, err
@@ -149,11 +162,18 @@ func (c *calculator) calculate() (int, error) {
 		return first.value + second.value, nil
 	case tokenTypeMinus:
 		return first.value - second.value, nil
+	case tokenTypeMultiple:
+		return first.value * second.value, nil
+	case tokenTypeDevide:
+		if second.value == 0 {
+			return 0, errors.New("cannot devide by 0")
+		}
+		return first.value / second.value, nil
 	}
 	return 0, nil
 }
 
 // Do performs arithmetic calculation based on the input string.
-func Do(input string) (int, error) {
+func Do(input string) (float64, error) {
 	return newCalculator(input).calculate()
 }

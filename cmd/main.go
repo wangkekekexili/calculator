@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"math"
+
 	"github.com/wangkekekexili/calculator"
 )
 
@@ -22,6 +24,10 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
-		fmt.Println(result)
+		if result == math.Floor(result) {
+			fmt.Printf("%.0f\n", result)
+		} else {
+			fmt.Printf("%.2f\n", result)
+		}
 	}
 }
