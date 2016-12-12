@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"os"
-
 	"math"
+	"os"
+	"strings"
 
 	"github.com/wangkekekexili/calculator"
 )
@@ -17,6 +17,9 @@ func main() {
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
+			continue
+		}
+		if strings.TrimSpace(input) == "" {
 			continue
 		}
 		result, err := calculator.Do(input)
