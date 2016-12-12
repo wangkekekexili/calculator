@@ -19,6 +19,7 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
+		input = strings.Trim(input, " \r\n")
 		if strings.TrimSpace(input) == "" {
 			continue
 		}

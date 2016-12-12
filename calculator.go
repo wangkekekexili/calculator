@@ -1,10 +1,11 @@
 package calculator
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/wangkekekexili/calculator/util/stack"
 )
 
 type tokenType int
@@ -44,11 +45,11 @@ var (
 
 type unexpectedTokenError struct {
 	index              int
-	expectedTokenTypes map[tokenType]bool
+	expectedTokenTypes []tokenType
 	token              *token
 }
 
-func newUnexpectedTokenError(index int, token *token, expectedTokenTypes map[tokenType]bool) *unexpectedTokenError {
+func newUnexpectedTokenError(index int, token *token, expectedTokenTypes ...tokenType) *unexpectedTokenError {
 	return &unexpectedTokenError{
 		index:              index,
 		expectedTokenTypes: expectedTokenTypes,
@@ -57,17 +58,24 @@ func newUnexpectedTokenError(index int, token *token, expectedTokenTypes map[tok
 }
 
 func (err *unexpectedTokenError) Error() string {
+	targetTypeStr := tokenTypeValueToString[err.token.tokenType]
+	if len(err.expectedTokenTypes) == 0 {
+		return fmt.Sprintf("Index: %d. Unexpected token %v.", err.index, targetTypeStr)
+	}
 	var expectedTypeStrs []string
-	for t := range err.expectedTokenTypes {
+	for _, t := range err.expectedTokenTypes {
 		expectedTypeStrs = append(expectedTypeStrs, tokenTypeValueToString[t])
 	}
-	targetTypeStr := tokenTypeValueToString[err.token.tokenType]
 	return fmt.Sprintf("Index: %d. Expected to get tokens of type %v. Got token %v.", err.index, strings.Join(expectedTypeStrs, " or "), targetTypeStr)
 }
 
 type token struct {
 	value     float64
 	tokenType tokenType
+}
+
+func (t *token) String() string {
+	return fmt.Sprintf("token type: %v; value: %v", tokenTypeValueToString[t.tokenType], t.value)
 }
 
 type calculator struct {
@@ -136,41 +144,68 @@ func (c *calculator) getNextToken() *token {
 	}
 }
 
-func (c *calculator) getNextTokenWithExpectedType(expectedTokenTypeSet map[tokenType]bool) (*token, error) {
-	token := c.getNextToken()
-	if _, ok := expectedTokenTypeSet[token.tokenType]; !ok {
-		return nil, newUnexpectedTokenError(c.currentPosition, token, expectedTokenTypeSet)
+func (c *calculator) getNextTokenWithExpectedType(expectedTokenType tokenType) (*token, error) {
+	nextToken := c.getNextToken()
+	if nextToken.tokenType != expectedTokenType {
+		return nil, newUnexpectedTokenError(c.currentPosition, nextToken, expectedTokenType)
 	}
-	return token, nil
+	return nextToken, nil
 }
 
 func (c *calculator) calculate() (float64, error) {
-	first, err := c.getNextTokenWithExpectedType(numberTypeSet)
+	s := stack.New()
+	firstNumber, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
 	if err != nil {
 		return 0, err
 	}
-	operator, err := c.getNextTokenWithExpectedType(operatorTypeSet)
-	if err != nil {
-		return 0, err
-	}
-	second, err := c.getNextTokenWithExpectedType(numberTypeSet)
-	if err != nil {
-		return 0, err
-	}
-	switch operator.tokenType {
-	case tokenTypePlus:
-		return first.value + second.value, nil
-	case tokenTypeMinus:
-		return first.value - second.value, nil
-	case tokenTypeMultiple:
-		return first.value * second.value, nil
-	case tokenTypeDevide:
-		if second.value == 0 {
-			return 0, errors.New("cannot devide by 0")
+	s.Push(firstNumber)
+	for {
+		nextToken := c.getNextToken()
+		switch nextToken.tokenType {
+		case tokenTypeEOF:
+			var result float64
+			reverse := stack.New()
+			for s.Size() != 0 {
+				reverse.Push(s.Pop())
+			}
+			for reverse.Size() != 0 {
+				first := reverse.Pop().(*token)
+				if first.tokenType == tokenTypeNumber {
+					result = first.value
+				} else if first.tokenType == tokenTypePlus {
+					second := reverse.Pop().(*token)
+					result += second.value
+				} else if first.tokenType == tokenTypeMinus {
+					second := reverse.Pop().(*token)
+					result -= second.value
+				}
+			}
+			return result, nil
+		case tokenTypeNumber:
+			return 0, newUnexpectedTokenError(c.currentPosition, nextToken)
+		case tokenTypePlus, tokenTypeMinus:
+			s.Push(nextToken)
+			nextNumberToken, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
+			if err != nil {
+				return 0, err
+			}
+			s.Push(nextNumberToken)
+		case tokenTypeMultiple, tokenTypeDevide:
+			nextNumberToken, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
+			if err != nil {
+				return 0, err
+			}
+			lastNumberToken := s.Pop().(*token)
+			if lastNumberToken.tokenType != tokenTypeNumber {
+				return 0, newUnexpectedTokenError(c.currentPosition, nextNumberToken)
+			}
+			if nextToken.tokenType == tokenTypeMultiple {
+				s.Push(&token{value: lastNumberToken.value * nextNumberToken.value, tokenType: tokenTypeNumber})
+			} else {
+				s.Push(&token{value: lastNumberToken.value / nextNumberToken.value, tokenType: tokenTypeNumber})
+			}
 		}
-		return first.value / second.value, nil
 	}
-	return 0, nil
 }
 
 // Do performs arithmetic calculation based on the input string.
