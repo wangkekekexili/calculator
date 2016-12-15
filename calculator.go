@@ -16,7 +16,7 @@ const (
 	tokenTypePlus
 	tokenTypeMinus
 	tokenTypeMultiple
-	tokenTypeDevide
+	tokenTypeDivide
 	tokenTypeEOF
 	tokenTypeError
 )
@@ -27,19 +27,9 @@ var (
 		tokenTypePlus:     "plus",
 		tokenTypeMinus:    "minus",
 		tokenTypeMultiple: "multiple",
-		tokenTypeDevide:   "devide",
+		tokenTypeDivide:   "devide",
 		tokenTypeEOF:      "EOF",
 		tokenTypeError:    "error",
-	}
-
-	numberTypeSet = map[tokenType]bool{
-		tokenTypeNumber: true,
-	}
-	operatorTypeSet = map[tokenType]bool{
-		tokenTypePlus:     true,
-		tokenTypeMinus:    true,
-		tokenTypeMultiple: true,
-		tokenTypeDevide:   true,
 	}
 )
 
@@ -138,7 +128,7 @@ func (c *calculator) getNextToken() *token {
 		return &token{tokenType: tokenTypeMultiple}
 	case ch == '/':
 		c.advance()
-		return &token{tokenType: tokenTypeDevide}
+		return &token{tokenType: tokenTypeDivide}
 	default:
 		return &token{tokenType: tokenTypeError}
 	}
@@ -190,7 +180,7 @@ func (c *calculator) calculate() (float64, error) {
 				return 0, err
 			}
 			s.Push(nextNumberToken)
-		case tokenTypeMultiple, tokenTypeDevide:
+		case tokenTypeMultiple, tokenTypeDivide:
 			nextNumberToken, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
 			if err != nil {
 				return 0, err
