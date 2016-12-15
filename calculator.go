@@ -6,29 +6,29 @@ import (
 	"github.com/wangkekekexili/calculator/util/stack"
 )
 
-type calculator struct {
+type interpreter struct {
 	input           string
 	currentPosition int
 }
 
-func newCalculator(input string) *calculator {
-	return &calculator{input: input}
+func newInterpreter(input string) *interpreter {
+	return &interpreter{input: input}
 }
 
-func (c *calculator) advance() {
+func (c *interpreter) advance() {
 	if c.currentPosition < len(c.input) {
 		c.currentPosition++
 	}
 }
 
-func (c *calculator) skipWhitespace() {
+func (c *interpreter) skipWhitespace() {
 	for c.currentPosition < len(c.input) && c.input[c.currentPosition] == ' ' {
 		c.currentPosition++
 	}
 }
 
-// getNextNumber gets the next number token. The caller should guarantee that the next token is a number.
-func (c *calculator) getNextNumber() float64 {
+// integer gets the next number token. The caller should guarantee that the next token is a number.
+func (c *interpreter) integer() float64 {
 	valueEndIndex := c.currentPosition + 1
 	for valueEndIndex < len(c.input) {
 		ch := c.input[valueEndIndex]
@@ -46,7 +46,7 @@ func (c *calculator) getNextNumber() float64 {
 	return float64(value)
 }
 
-func (c *calculator) getNextToken() *token {
+func (c *interpreter) getNextToken() *token {
 	c.skipWhitespace()
 	if c.currentPosition >= len(c.input) {
 		return &token{tokenType: tokenTypeEOF}
@@ -54,7 +54,7 @@ func (c *calculator) getNextToken() *token {
 	ch := c.input[c.currentPosition]
 	switch {
 	case ch >= '0' && ch <= '9':
-		return &token{value: c.getNextNumber(), tokenType: tokenTypeNumber}
+		return &token{value: c.integer(), tokenType: tokenTypeNumber}
 	case ch == '+':
 		c.advance()
 		return &token{tokenType: tokenTypePlus}
@@ -72,7 +72,7 @@ func (c *calculator) getNextToken() *token {
 	}
 }
 
-func (c *calculator) getNextTokenWithExpectedType(expectedTokenType tokenType) (*token, error) {
+func (c *interpreter) getNextTokenWithExpectedType(expectedTokenType tokenType) (*token, error) {
 	nextToken := c.getNextToken()
 	if nextToken.tokenType != expectedTokenType {
 		return nil, newUnexpectedTokenError(c.currentPosition, nextToken, expectedTokenType)
@@ -80,7 +80,7 @@ func (c *calculator) getNextTokenWithExpectedType(expectedTokenType tokenType) (
 	return nextToken, nil
 }
 
-func (c *calculator) calculate() (float64, error) {
+func (c *interpreter) calculate() (float64, error) {
 	s := stack.New()
 	firstNumber, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
 	if err != nil {
@@ -138,5 +138,5 @@ func (c *calculator) calculate() (float64, error) {
 
 // Do performs arithmetic calculation based on the input string.
 func Do(input string) (float64, error) {
-	return newCalculator(input).calculate()
+	return newInterpreter(input).calculate()
 }
