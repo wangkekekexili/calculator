@@ -1,35 +1,34 @@
 package calculator
 
-import (
-	"strconv"
-
-	"github.com/wangkekekexili/calculator/util/stack"
-)
+import "strconv"
 
 type interpreter struct {
-	input           string
-	currentPosition int
+	input        string
+	pos          int
+	currentToken *token
 }
 
 func newInterpreter(input string) *interpreter {
-	return &interpreter{input: input}
+	c := &interpreter{input: input}
+	c.getToken()
+	return c
 }
 
 func (c *interpreter) advance() {
-	if c.currentPosition < len(c.input) {
-		c.currentPosition++
+	if c.pos < len(c.input) {
+		c.pos++
 	}
 }
 
 func (c *interpreter) skipWhitespace() {
-	for c.currentPosition < len(c.input) && c.input[c.currentPosition] == ' ' {
-		c.currentPosition++
+	for c.pos < len(c.input) && c.input[c.pos] == ' ' {
+		c.pos++
 	}
 }
 
-// integer gets the next number token. The caller should guarantee that the next token is a number.
-func (c *interpreter) integer() float64 {
-	valueEndIndex := c.currentPosition + 1
+// getNumber gets the next number token. The caller should guarantee that the next token is a number.
+func (c *interpreter) getNumber() float64 {
+	valueEndIndex := c.pos + 1
 	for valueEndIndex < len(c.input) {
 		ch := c.input[valueEndIndex]
 		if ch >= '0' && ch <= '9' {
@@ -38,102 +37,88 @@ func (c *interpreter) integer() float64 {
 		}
 		break
 	}
-	value, err := strconv.ParseInt(c.input[c.currentPosition:valueEndIndex], 10, 32)
+	value, err := strconv.ParseInt(c.input[c.pos:valueEndIndex], 10, 32)
 	if err != nil {
 		panic(err)
 	}
-	c.currentPosition = valueEndIndex
+	c.pos = valueEndIndex
 	return float64(value)
 }
 
-func (c *interpreter) getNextToken() *token {
+func (c *interpreter) getToken() {
 	c.skipWhitespace()
-	if c.currentPosition >= len(c.input) {
-		return &token{tokenType: tokenTypeEOF}
+	if c.pos >= len(c.input) {
+		c.currentToken = &token{tokenType: tokenTypeEOF}
+		return
 	}
-	ch := c.input[c.currentPosition]
+	ch := c.input[c.pos]
 	switch {
 	case ch >= '0' && ch <= '9':
-		return &token{value: c.integer(), tokenType: tokenTypeNumber}
+		c.currentToken = &token{value: c.getNumber(), tokenType: tokenTypeNumber}
 	case ch == '+':
 		c.advance()
-		return &token{tokenType: tokenTypePlus}
+		c.currentToken = &token{tokenType: tokenTypePlus}
 	case ch == '-':
 		c.advance()
-		return &token{tokenType: tokenTypeMinus}
+		c.currentToken = &token{tokenType: tokenTypeMinus}
 	case ch == '*':
 		c.advance()
-		return &token{tokenType: tokenTypeMultiple}
+		c.currentToken = &token{tokenType: tokenTypeMultiple}
 	case ch == '/':
 		c.advance()
-		return &token{tokenType: tokenTypeDivide}
+		c.currentToken = &token{tokenType: tokenTypeDivide}
 	default:
-		return &token{tokenType: tokenTypeError}
+		c.currentToken = &token{tokenType: tokenTypeError}
 	}
 }
 
-func (c *interpreter) getNextTokenWithExpectedType(expectedTokenType tokenType) (*token, error) {
-	nextToken := c.getNextToken()
-	if nextToken.tokenType != expectedTokenType {
-		return nil, newUnexpectedTokenError(c.currentPosition, nextToken, expectedTokenType)
+func (c *interpreter) getCurrentToken() *token {
+	return c.currentToken
+}
+
+// eat checks if the current token has the expected token type and fetches the next token.
+func (c *interpreter) eat(t tokenType) error {
+	if c.currentToken.tokenType != t {
+		return newUnexpectedTokenError(c.pos, c.currentToken, t)
 	}
-	return nextToken, nil
+	c.getToken()
+	return nil
 }
 
 func (c *interpreter) calculate() (float64, error) {
-	s := stack.New()
-	firstNumber, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
-	if err != nil {
+	firstNumber := c.getCurrentToken()
+	if err := c.eat(tokenTypeNumber); err != nil {
 		return 0, err
 	}
-	s.Push(firstNumber)
-	for {
-		nextToken := c.getNextToken()
-		switch nextToken.tokenType {
-		case tokenTypeEOF:
-			var result float64
-			reverse := stack.New()
-			for s.Size() != 0 {
-				reverse.Push(s.Pop())
-			}
-			for reverse.Size() != 0 {
-				first := reverse.Pop().(*token)
-				if first.tokenType == tokenTypeNumber {
-					result = first.value
-				} else if first.tokenType == tokenTypePlus {
-					second := reverse.Pop().(*token)
-					result += second.value
-				} else if first.tokenType == tokenTypeMinus {
-					second := reverse.Pop().(*token)
-					result -= second.value
-				}
-			}
-			return result, nil
-		case tokenTypeNumber:
-			return 0, newUnexpectedTokenError(c.currentPosition, nextToken)
-		case tokenTypePlus, tokenTypeMinus:
-			s.Push(nextToken)
-			nextNumberToken, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
-			if err != nil {
-				return 0, err
-			}
-			s.Push(nextNumberToken)
-		case tokenTypeMultiple, tokenTypeDivide:
-			nextNumberToken, err := c.getNextTokenWithExpectedType(tokenTypeNumber)
-			if err != nil {
-				return 0, err
-			}
-			lastNumberToken := s.Pop().(*token)
-			if lastNumberToken.tokenType != tokenTypeNumber {
-				return 0, newUnexpectedTokenError(c.currentPosition, nextNumberToken)
-			}
-			if nextToken.tokenType == tokenTypeMultiple {
-				s.Push(&token{value: lastNumberToken.value * nextNumberToken.value, tokenType: tokenTypeNumber})
-			} else {
-				s.Push(&token{value: lastNumberToken.value / nextNumberToken.value, tokenType: tokenTypeNumber})
-			}
-		}
+	operator := c.getCurrentToken()
+	switch operator.tokenType {
+	case tokenTypePlus:
+		c.eat(tokenTypePlus)
+	case tokenTypeMinus:
+		c.eat(tokenTypeMinus)
+	case tokenTypeMultiple:
+		c.eat(tokenTypeMultiple)
+	case tokenTypeDivide:
+		c.eat(tokenTypeDivide)
+	default:
+		return 0, newUnexpectedTokenError(c.pos, c.currentToken, tokenTypePlus, tokenTypeMinus, tokenTypeMultiple, tokenTypeDivide)
 	}
+	secondNumber := c.getCurrentToken()
+	if err := c.eat(tokenTypeNumber); err != nil {
+		return 0, err
+	}
+
+	switch operator.tokenType {
+	case tokenTypePlus:
+		return firstNumber.value + secondNumber.value, nil
+	case tokenTypeMinus:
+		return firstNumber.value - secondNumber.value, nil
+	case tokenTypeMultiple:
+		return firstNumber.value * secondNumber.value, nil
+	case tokenTypeDivide:
+		return firstNumber.value / secondNumber.value, nil
+	}
+	return 0, nil
 }
 
 // Do performs arithmetic calculation based on the input string.

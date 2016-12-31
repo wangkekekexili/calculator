@@ -57,8 +57,8 @@ func (err *unexpectedTokenError) Error() string {
 }
 
 type token struct {
-	value     float64
 	tokenType tokenType
+	value     float64
 }
 
 func (t *token) String() string {

@@ -23,6 +23,9 @@ func main() {
 		if strings.TrimSpace(input) == "" {
 			continue
 		}
+		if input == "exit" {
+			os.Exit(0)
+		}
 		result, err := calculator.Do(input)
 		if err != nil {
 			fmt.Println(err)
