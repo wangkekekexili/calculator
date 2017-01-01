@@ -9,5 +9,5 @@ func Do(input string) (float64, error) {
 			fmt.Println("panic recovered: ", r)
 		}
 	}()
-	return newInterpreter(input).calculate()
+	return newInterpreter(input).interpret()
 }
