@@ -14,6 +14,8 @@ const (
 	tokenTypeMinus
 	tokenTypeMultiple
 	tokenTypeDivide
+	tokenTypeLParen
+	tokenTypeRParen
 	tokenTypeEOF
 	tokenTypeError
 )
@@ -25,6 +27,8 @@ var (
 		tokenTypeMinus:    "minus",
 		tokenTypeMultiple: "multiple",
 		tokenTypeDivide:   "devide",
+		tokenTypeLParen:   "left parenthesis",
+		tokenTypeRParen:   "right parenthesis",
 		tokenTypeEOF:      "EOF",
 		tokenTypeError:    "error",
 	}

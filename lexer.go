@@ -34,12 +34,12 @@ func (l *lexer) getNumber() float64 {
 		}
 		break
 	}
-	value, err := strconv.ParseInt(l.input[l.pos:valueEndIndex], 10, 32)
+	value, err := strconv.ParseFloat(l.input[l.pos:valueEndIndex], 64)
 	if err != nil {
 		panic(err)
 	}
 	l.pos = valueEndIndex
-	return float64(value)
+	return value
 }
 
 // GetToken gets the next token.
@@ -65,6 +65,12 @@ func (l *lexer) GetToken() *token {
 	case ch == '/':
 		l.advance()
 		resultToken = &token{tokenType: tokenTypeDivide}
+	case ch == '(':
+		l.advance()
+		resultToken = &token{tokenType: tokenTypeLParen}
+	case ch == ')':
+		l.advance()
+		resultToken = &token{tokenType: tokenTypeRParen}
 	default:
 		resultToken = &token{tokenType: tokenTypeError}
 	}

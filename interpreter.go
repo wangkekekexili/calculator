@@ -23,11 +23,23 @@ func (c *interpreter) eat(t tokenType) error {
 }
 
 func (c *interpreter) number() (float64, error) {
-	token := c.currentToken
-	if err := c.eat(tokenTypeNumber); err != nil {
-		return 0, err
+	switch token := c.currentToken; token.tokenType {
+	case tokenTypeNumber:
+		c.eat(tokenTypeNumber)
+		return token.value, nil
+	case tokenTypeLParen:
+		c.eat(tokenTypeLParen)
+		value, err := c.expr()
+		if err != nil {
+			return 0, err
+		}
+		if err = c.eat(tokenTypeRParen); err != nil {
+			return 0, err
+		}
+		return value, nil
+	default:
+		return 0, newUnexpectedTokenError(c.lexer.pos, token, tokenTypeNumber, tokenTypeLParen)
 	}
-	return token.value, nil
 }
 
 func (c *interpreter) factor() (float64, error) {
@@ -79,8 +91,16 @@ func (c *interpreter) expr() (float64, error) {
 			result = result - n
 		}
 	}
-	if c.currentToken.tokenType != tokenTypeEOF {
-		return 0, newUnexpectedTokenError(c.lexer.pos, c.currentToken, tokenTypeEOF)
-	}
 	return result, nil
+}
+
+func (c *interpreter) calculate() (float64, error) {
+	value, err := c.expr()
+	if err != nil {
+		return 0, err
+	}
+	if err = c.eat(tokenTypeEOF); err != nil {
+		return 0, err
+	}
+	return value, nil
 }
