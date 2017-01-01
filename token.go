@@ -22,7 +22,7 @@ const (
 
 var (
 	tokenTypeValueToString = map[tokenType]string{
-		tokenTypeNumber:   "number",
+		tokenTypeNumber:   "factor",
 		tokenTypePlus:     "plus",
 		tokenTypeMinus:    "minus",
 		tokenTypeMultiple: "multiple",

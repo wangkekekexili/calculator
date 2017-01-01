@@ -22,7 +22,7 @@ func (c *interpreter) eat(t tokenType) error {
 	return nil
 }
 
-func (c *interpreter) number() (float64, error) {
+func (c *interpreter) factor() (float64, error) {
 	switch token := c.currentToken; token.tokenType {
 	case tokenTypeNumber:
 		c.eat(tokenTypeNumber)
@@ -42,8 +42,8 @@ func (c *interpreter) number() (float64, error) {
 	}
 }
 
-func (c *interpreter) factor() (float64, error) {
-	result, err := c.number()
+func (c *interpreter) term() (float64, error) {
+	result, err := c.factor()
 	if err != nil {
 		return 0, err
 	}
@@ -51,14 +51,14 @@ func (c *interpreter) factor() (float64, error) {
 		switch c.currentToken.tokenType {
 		case tokenTypeMultiple:
 			c.eat(tokenTypeMultiple)
-			n, err := c.number()
+			n, err := c.factor()
 			if err != nil {
 				return 0, err
 			}
 			result = result * n
 		case tokenTypeDivide:
 			c.eat(tokenTypeDivide)
-			n, err := c.number()
+			n, err := c.factor()
 			if err != nil {
 				return 0, err
 			}
@@ -69,7 +69,7 @@ func (c *interpreter) factor() (float64, error) {
 }
 
 func (c *interpreter) expr() (float64, error) {
-	result, err := c.factor()
+	result, err := c.term()
 	if err != nil {
 		return 0, err
 	}
@@ -77,14 +77,14 @@ func (c *interpreter) expr() (float64, error) {
 		switch c.currentToken.tokenType {
 		case tokenTypePlus:
 			c.eat(tokenTypePlus)
-			n, err := c.factor()
+			n, err := c.term()
 			if err != nil {
 				return 0, err
 			}
 			result = result + n
 		case tokenTypeMinus:
 			c.eat(tokenTypeMinus)
-			n, err := c.factor()
+			n, err := c.term()
 			if err != nil {
 				return 0, err
 			}

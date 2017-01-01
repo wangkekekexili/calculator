@@ -23,7 +23,7 @@ func (l *lexer) skipWhitespace() {
 	}
 }
 
-// getNumber gets the next number token. The caller should guarantee that the next token is a number.
+// getNumber gets the next factor token. The caller should guarantee that the next token is a factor.
 func (l *lexer) getNumber() float64 {
 	valueEndIndex := l.pos + 1
 	for valueEndIndex < len(l.input) {
