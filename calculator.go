@@ -72,10 +72,6 @@ func (c *interpreter) getToken() {
 	}
 }
 
-func (c *interpreter) getCurrentToken() *token {
-	return c.currentToken
-}
-
 // eat checks if the current token has the expected token type and fetches the next token.
 func (c *interpreter) eat(t tokenType) error {
 	if c.currentToken.tokenType != t {
@@ -85,40 +81,42 @@ func (c *interpreter) eat(t tokenType) error {
 	return nil
 }
 
-func (c *interpreter) calculate() (float64, error) {
-	firstNumber := c.getCurrentToken()
+// term checks the token to see if it is a number.
+func (c *interpreter) term() (float64, error) {
+	token := c.currentToken
 	if err := c.eat(tokenTypeNumber); err != nil {
 		return 0, err
 	}
-	operator := c.getCurrentToken()
-	switch operator.tokenType {
-	case tokenTypePlus:
-		c.eat(tokenTypePlus)
-	case tokenTypeMinus:
-		c.eat(tokenTypeMinus)
-	case tokenTypeMultiple:
-		c.eat(tokenTypeMultiple)
-	case tokenTypeDivide:
-		c.eat(tokenTypeDivide)
-	default:
-		return 0, newUnexpectedTokenError(c.pos, c.currentToken, tokenTypePlus, tokenTypeMinus, tokenTypeMultiple, tokenTypeDivide)
-	}
-	secondNumber := c.getCurrentToken()
-	if err := c.eat(tokenTypeNumber); err != nil {
-		return 0, err
-	}
+	return token.value, nil
+}
 
-	switch operator.tokenType {
-	case tokenTypePlus:
-		return firstNumber.value + secondNumber.value, nil
-	case tokenTypeMinus:
-		return firstNumber.value - secondNumber.value, nil
-	case tokenTypeMultiple:
-		return firstNumber.value * secondNumber.value, nil
-	case tokenTypeDivide:
-		return firstNumber.value / secondNumber.value, nil
+func (c *interpreter) calculate() (float64, error) {
+	result, err := c.term()
+	if err != nil {
+		return 0, err
 	}
-	return 0, nil
+	for c.currentToken.tokenType == tokenTypePlus || c.currentToken.tokenType == tokenTypeMinus {
+		switch c.currentToken.tokenType {
+		case tokenTypePlus:
+			c.eat(tokenTypePlus)
+			n, err := c.term()
+			if err != nil {
+				return 0, err
+			}
+			result = result + n
+		case tokenTypeMinus:
+			c.eat(tokenTypeMinus)
+			n, err := c.term()
+			if err != nil {
+				return 0, err
+			}
+			result = result - n
+		}
+	}
+	if c.currentToken.tokenType != tokenTypeEOF {
+		return 0, newUnexpectedTokenError(c.pos, c.currentToken, tokenTypeEOF)
+	}
+	return result, nil
 }
 
 // Do performs arithmetic calculation based on the input string.
