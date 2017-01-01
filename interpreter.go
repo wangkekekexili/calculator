@@ -1,6 +1,11 @@
 package calculator
 
-import "math"
+import (
+	"fmt"
+	"math"
+	"reflect"
+	"sync"
+)
 
 type interpreter struct {
 	parser *parser
@@ -15,26 +20,49 @@ func (i *interpreter) interpret() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return i.visit(root), nil
+	return visit(root), nil
 }
 
-func (i *interpreter) visit(node *node) float64 {
-	if node.left == nil && node.right == nil {
-		return node.token.value
-	}
-	left := i.visit(node.left)
-	right := i.visit(node.right)
-	switch node.token.tokenType {
+var nodeTypeNameToVisitFunc map[string]func(n node) float64
+var nodeTypeNameToVisitFuncInit sync.Once
+
+func getNodeTypeNameToVisitFunc() map[string]func(n node) float64 {
+	nodeTypeNameToVisitFuncInit.Do(func() {
+		nodeTypeNameToVisitFunc = map[string]func(n node) float64{
+			reflect.TypeOf(binaryOperatorNode{}).Name(): visitBinaryOperatorNode,
+			reflect.TypeOf(valueNode{}).Name():          visitValueNode,
+		}
+	})
+	return nodeTypeNameToVisitFunc
+}
+
+func visit(n node) float64 {
+	return getNodeTypeNameToVisitFunc()[n.getTypeName()](n)
+}
+
+func visitBinaryOperatorNode(n node) float64 {
+	opNode := n.(*binaryOperatorNode)
+	leftValue := visit(opNode.left)
+	rightValue := visit(opNode.right)
+	var value float64
+	switch opNode.token.tokenType {
 	case tokenTypePlus:
-		return left + right
+		value = leftValue + rightValue
 	case tokenTypeMinus:
-		return left - right
+		value = leftValue - rightValue
 	case tokenTypeMultiple:
-		return left * right
+		value = leftValue * rightValue
 	case tokenTypeDivide:
-		return left / right
+		value = leftValue / rightValue
 	case tokenTypePower:
-		return math.Pow(left, right)
+		value = math.Pow(leftValue, rightValue)
+	default:
+		panic(fmt.Sprintf("programming error unexpected token: %v", opNode.token))
 	}
-	return 0
+	return value
+}
+
+func visitValueNode(n node) float64 {
+	valueNode := n.(*valueNode)
+	return valueNode.token.value
 }

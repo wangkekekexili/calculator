@@ -1,18 +1,5 @@
 package calculator
 
-type node struct {
-	left, right *node
-	token       *token
-}
-
-func newNode(left, right *node, token *token) *node {
-	return &node{
-		left:  left,
-		right: right,
-		token: token,
-	}
-}
-
 type parser struct {
 	lexer        *lexer
 	currentToken *token
@@ -35,15 +22,15 @@ func (c *parser) eat(t tokenType) error {
 	return nil
 }
 
-func (c *parser) number() (*node, error) {
+func (c *parser) number() (node, error) {
 	token := c.currentToken
-	var result *node
+	var result node
 	var err error
 
 	switch token.tokenType {
 	case tokenTypeNumber:
 		c.eat(tokenTypeNumber)
-		result = newNode(nil, nil, token)
+		result = newValueNode(token)
 	case tokenTypeLParen:
 		c.eat(tokenTypeLParen)
 		result, err = c.expr()
@@ -60,7 +47,7 @@ func (c *parser) number() (*node, error) {
 	return result, nil
 }
 
-func (c *parser) factor() (*node, error) {
+func (c *parser) factor() (node, error) {
 	result, err := c.number()
 	if err != nil {
 		return nil, err
@@ -73,13 +60,13 @@ func (c *parser) factor() (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		result = newNode(result, second, op)
+		result = newBinaryOperatorNode(result, second, op)
 	}
 
 	return result, nil
 }
 
-func (c *parser) term() (*node, error) {
+func (c *parser) term() (node, error) {
 	result, err := c.factor()
 	if err != nil {
 		return nil, err
@@ -96,12 +83,12 @@ func (c *parser) term() (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		result = newNode(result, n, op)
+		result = newBinaryOperatorNode(result, n, op)
 	}
 	return result, nil
 }
 
-func (c *parser) expr() (*node, error) {
+func (c *parser) expr() (node, error) {
 	result, err := c.term()
 	if err != nil {
 		return nil, err
@@ -118,12 +105,12 @@ func (c *parser) expr() (*node, error) {
 		if err != nil {
 			return nil, err
 		}
-		result = newNode(result, n, op)
+		result = newBinaryOperatorNode(result, n, op)
 	}
 	return result, nil
 }
 
-func (c *parser) parse() (*node, error) {
+func (c *parser) parse() (node, error) {
 	n, err := c.expr()
 	if err != nil {
 		return nil, err

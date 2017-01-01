@@ -30,6 +30,9 @@ func TestCalculator(t *testing.T) {
 	}, {
 		input:  "7 + 3 * (10 / (12 / (3 + 1) - 1))",
 		output: 22,
+	}, {
+		input:  "2 ^ (1 + 2 / 2)",
+		output: 4,
 	}}
 	for _, test := range tests {
 		output, err := Do(test.input)
