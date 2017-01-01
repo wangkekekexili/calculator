@@ -22,13 +22,38 @@ func (c *interpreter) eat(t tokenType) error {
 	return nil
 }
 
-// factor checks the token to see if it is a number.
-func (c *interpreter) factor() (float64, error) {
+func (c *interpreter) number() (float64, error) {
 	token := c.currentToken
 	if err := c.eat(tokenTypeNumber); err != nil {
 		return 0, err
 	}
 	return token.value, nil
+}
+
+func (c *interpreter) factor() (float64, error) {
+	result, err := c.number()
+	if err != nil {
+		return 0, err
+	}
+	for c.currentToken.tokenType == tokenTypeMultiple || c.currentToken.tokenType == tokenTypeDivide {
+		switch c.currentToken.tokenType {
+		case tokenTypeMultiple:
+			c.eat(tokenTypeMultiple)
+			n, err := c.number()
+			if err != nil {
+				return 0, err
+			}
+			result = result * n
+		case tokenTypeDivide:
+			c.eat(tokenTypeDivide)
+			n, err := c.number()
+			if err != nil {
+				return 0, err
+			}
+			result = result / n
+		}
+	}
+	return result, nil
 }
 
 func (c *interpreter) expr() (float64, error) {
