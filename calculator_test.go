@@ -34,6 +34,7 @@ func TestCalculator(t *testing.T) {
 	for _, test := range tests {
 		output, err := Do(test.input)
 		if err != nil {
+			t.Log(test.input)
 			t.Fatal(err)
 		}
 		if output != test.output {

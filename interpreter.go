@@ -1,5 +1,7 @@
 package calculator
 
+import "math"
+
 type interpreter struct {
 	lexer        *lexer
 	currentToken *token
@@ -22,24 +24,47 @@ func (c *interpreter) eat(t tokenType) error {
 	return nil
 }
 
-func (c *interpreter) factor() (float64, error) {
-	switch token := c.currentToken; token.tokenType {
+func (c *interpreter) number() (float64, error) {
+	token := c.currentToken
+	var result float64
+	var err error
+
+	switch token.tokenType {
 	case tokenTypeNumber:
 		c.eat(tokenTypeNumber)
-		return token.value, nil
+		result = token.value
 	case tokenTypeLParen:
 		c.eat(tokenTypeLParen)
-		value, err := c.expr()
+		result, err = c.expr()
 		if err != nil {
 			return 0, err
 		}
 		if err = c.eat(tokenTypeRParen); err != nil {
 			return 0, err
 		}
-		return value, nil
 	default:
 		return 0, newUnexpectedTokenError(c.lexer.pos, token, tokenTypeNumber, tokenTypeLParen)
 	}
+
+	return result, nil
+}
+
+func (c *interpreter) factor() (float64, error) {
+	result, err := c.number()
+	if err != nil {
+		return 0, err
+	}
+
+	if c.currentToken.tokenType == tokenTypePower {
+		c.eat(tokenTypePower)
+		second, err := c.number()
+		if err != nil {
+			return 0, err
+		}
+		result = math.Pow(result, second)
+	}
+
+	return result, nil
 }
 
 func (c *interpreter) term() (float64, error) {

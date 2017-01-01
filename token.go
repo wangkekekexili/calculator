@@ -14,6 +14,7 @@ const (
 	tokenTypeMinus
 	tokenTypeMultiple
 	tokenTypeDivide
+	tokenTypePower
 	tokenTypeLParen
 	tokenTypeRParen
 	tokenTypeEOF
@@ -22,11 +23,12 @@ const (
 
 var (
 	tokenTypeValueToString = map[tokenType]string{
-		tokenTypeNumber:   "factor",
+		tokenTypeNumber:   "number",
 		tokenTypePlus:     "plus",
 		tokenTypeMinus:    "minus",
 		tokenTypeMultiple: "multiple",
 		tokenTypeDivide:   "devide",
+		tokenTypePower:    "power",
 		tokenTypeLParen:   "left parenthesis",
 		tokenTypeRParen:   "right parenthesis",
 		tokenTypeEOF:      "EOF",

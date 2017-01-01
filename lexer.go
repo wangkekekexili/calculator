@@ -65,6 +65,9 @@ func (l *lexer) GetToken() *token {
 	case ch == '/':
 		l.advance()
 		resultToken = &token{tokenType: tokenTypeDivide}
+	case ch == '^':
+		l.advance()
+		resultToken = &token{tokenType: tokenTypePower}
 	case ch == '(':
 		l.advance()
 		resultToken = &token{tokenType: tokenTypeLParen}
