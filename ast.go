@@ -7,6 +7,28 @@ type node interface {
 	getTypeName() string
 }
 
+type unaryOperatorNode struct {
+	child node
+	token *token
+}
+
+var _ node = &unaryOperatorNode{}
+
+func newUnaryOperatorNode(child node, token *token) *unaryOperatorNode {
+	return &unaryOperatorNode{
+		child: child,
+		token: token,
+	}
+}
+
+func (n *unaryOperatorNode) getToken() *token {
+	return n.token
+}
+
+func (n *unaryOperatorNode) getTypeName() string {
+	return reflect.TypeOf(*n).Name()
+}
+
 type binaryOperatorNode struct {
 	left, right node
 	token       *token

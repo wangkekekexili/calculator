@@ -5,5 +5,5 @@
 expr: term((ADD|MINUS)term)*
 term: factor((MUL|DIV)factor)*
 factor: number|number^number
-number: INTEGER|LP expr RP|FUNC LP expr RP
+number: (ADD|MINUS)INTEGER|INTEGER|LP expr RP|FUNC LP expr RP
 ```

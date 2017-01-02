@@ -28,6 +28,20 @@ func (c *parser) number() (node, error) {
 	var err error
 
 	switch token.tokenType {
+	case tokenTypePlus:
+		c.eat(tokenTypePlus)
+		child, err := c.number()
+		if err != nil {
+			return nil, err
+		}
+		result = newUnaryOperatorNode(child, token)
+	case tokenTypeMinus:
+		c.eat(tokenTypeMinus)
+		child, err := c.number()
+		if err != nil {
+			return nil, err
+		}
+		result = newUnaryOperatorNode(child, token)
 	case tokenTypeNumber:
 		c.eat(tokenTypeNumber)
 		result = newValueNode(token)
@@ -41,7 +55,7 @@ func (c *parser) number() (node, error) {
 			return nil, err
 		}
 	default:
-		return nil, newUnexpectedTokenError(c.lexer.pos, token, tokenTypeNumber, tokenTypeLParen)
+		return nil, newUnexpectedTokenError(c.lexer.pos, token, tokenTypePlus, tokenTypeMinus, tokenTypeNumber, tokenTypeLParen)
 	}
 
 	return result, nil

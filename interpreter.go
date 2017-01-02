@@ -29,6 +29,7 @@ var nodeTypeNameToVisitFuncInit sync.Once
 func getNodeTypeNameToVisitFunc() map[string]func(n node) float64 {
 	nodeTypeNameToVisitFuncInit.Do(func() {
 		nodeTypeNameToVisitFunc = map[string]func(n node) float64{
+			reflect.TypeOf(unaryOperatorNode{}).Name():  visitUnaryOperatorNode,
 			reflect.TypeOf(binaryOperatorNode{}).Name(): visitBinaryOperatorNode,
 			reflect.TypeOf(valueNode{}).Name():          visitValueNode,
 		}
@@ -38,6 +39,18 @@ func getNodeTypeNameToVisitFunc() map[string]func(n node) float64 {
 
 func visit(n node) float64 {
 	return getNodeTypeNameToVisitFunc()[n.getTypeName()](n)
+}
+
+func visitUnaryOperatorNode(n node) float64 {
+	opNode := n.(*unaryOperatorNode)
+	value := visit(opNode.child)
+	switch opNode.token.tokenType {
+	case tokenTypeMinus:
+		value = -value
+	default:
+		panic(fmt.Sprintf("programming error unexpected token: %v", opNode.token))
+	}
+	return value
 }
 
 func visitBinaryOperatorNode(n node) float64 {
